@@ -1,0 +1,14 @@
+# Keys and secrets: never upload these
+*.json
+.env
+
+# Python clutter
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Windows / Office clutter
+Thumbs.db
+desktop.ini
+~$*
