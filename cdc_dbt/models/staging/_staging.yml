@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: stg_us_deaths_by_age_year
+    description: "Cleaned national deaths by year and age group."
+    columns:
+      - name: year_age_key
+        description: "Grain: one row per year + age group."
+        tests: [unique, not_null]
+      - name: death_year
+        tests: [not_null]
+      - name: age_group
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Under 25', '25-44', '45-64', '65-74', '75-84', '85 and older']
+      - name: deaths
+        tests: [not_null]
+
+  - name: stg_state_deaths_65plus
+    description: "Cleaned deaths age 65+ by state and year (50 states + DC)."
+    columns:
+      - name: state_year_key
+        description: "Grain: one row per state + year."
+        tests: [unique, not_null]
+      - name: state_code
+        tests: [not_null]
+      - name: deaths_65_plus
+        tests: [not_null]

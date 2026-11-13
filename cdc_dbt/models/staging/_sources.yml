@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: cdc
+    description: "Raw CDC weekly death counts (dataset y5bj-9g5w), aggregated by cdc_mortality_pull.py and loaded to BigQuery."
+    schema: CDC
+    tables:
+      - name: us_deaths_by_age_year
+        identifier: "us deaths by age year"   # table name in BigQuery has spaces
+        quoting:
+          identifier: true
+        description: "National deaths by year and age group, 2015-2022 (Predicted weighted)."
+      - name: state_deaths_65plus
+        description: "Deaths age 65+ by state and year, 2015-2022. NYC merged into NY, Puerto Rico excluded."

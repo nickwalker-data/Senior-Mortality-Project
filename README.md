@@ -24,6 +24,24 @@ shifted toward working-age adults.
 | 1. Extract | `cdc_mortality_pull.py` | Pulls CDC data from the Socrata REST API, aggregating server-side with SoQL so about 48 rows download instead of about 200,000. Cleans it with pandas, merges NYC into NY, and checks a known total (2015, ages 25–44 = 124,889) before saving. |
 | 2. Load + SQL | Google BigQuery | Loads both CSVs into BigQuery (dataset `CDC`) and compares deaths with a 2015–2019 baseline using CTEs and joins. |
 | 3. Model | `cdc_trend_analysis.py` | Fits a 2015–2019 linear trend per age group (statsmodels OLS), projects expected deaths for 2020–2022, computes excess deaths with NumPy, and charts actual vs expected with matplotlib. |
+| 4. Transform + test | `cdc_dbt/` (dbt on BigQuery) | Rebuilds the analysis as tested SQL models: staging views over the raw tables, an excess-deaths mart that fits the same trend in SQL, and a state-level 65+ mart with a within-year rank. 21 automated data tests run on every build. |
+
+### dbt layer
+
+```
+raw (BigQuery dataset CDC)
+  ├─ stg_us_deaths_by_age_year ──► fct_excess_deaths_by_age
+  └─ stg_state_deaths_65plus ────► fct_state_65plus_excess
+```
+
+| Test | What it proves |
+| --- | --- |
+| Uniqueness and not-null on every model's grain | One row per year + age group, one row per state + year, no gaps |
+| Accepted values on `age_group` | Only the six CDC age bands appear |
+| `assert_2015_ages_25_44_matches_cdc` | The load matches a published CDC figure (124,889) |
+| `assert_excess_2020_2022_matches_python` | The SQL trend baseline reproduces the Python/statsmodels total (1,335,541) |
+| `assert_states_reconcile_to_national_65plus` | The 51 jurisdictions' 65+ deaths add up to the national 65+ total within 0.05% (they agree within about 0.01%; the gap is CDC rounding of weighted estimates per state and week) |
+| `assert_raw_row_counts` | The raw tables are complete: 48 national rows and 408 state rows |
 
 **Outputs:** `us_deaths_by_age_year.csv`, `state_deaths_65plus.csv`,
 `excess_deaths_trend_baseline.csv`, `excess_deaths_by_age.png`
@@ -35,6 +53,8 @@ pip install -r requirements.txt
 python cdc_mortality_pull.py
 python cdc_trend_analysis.py
 ```
+
+For the dbt layer: `pip install dbt-bigquery`, set up a BigQuery service-account profile in `~/.dbt/profiles.yml` (kept outside this repo), then from `cdc_dbt/` run `dbt build`.
 
 ## Data source
 
@@ -51,6 +71,7 @@ CDC, *Weekly Counts of Deaths by Jurisdiction and Age* (dataset `y5bj-9g5w`),
 - [x] Python REST API extraction with validation
 - [x] BigQuery load and baseline SQL
 - [x] Trend baseline, excess deaths and chart
-- [ ] dbt models and data tests on BigQuery
+- [x] dbt models and data tests on BigQuery
+- [ ] Tableau / Power BI dashboard on the dbt marts
 - [ ] Scheduled runs with GitHub Actions
 - [ ] Natural-language question → SQL tool over the BigQuery tables

@@ -12,3 +12,9 @@ venv/
 Thumbs.db
 desktop.ini
 ~$*
+
+# dbt run logs and build output
+logs/
+cdc_dbt/target/
+cdc_dbt/logs/
+cdc_dbt/dbt_packages/

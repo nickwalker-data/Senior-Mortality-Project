@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: fct_excess_deaths_by_age
+    description: "Actual vs expected deaths by age group and year. Expected = 2015-2019 linear trend per age group (same method as cdc_trend_analysis.py)."
+    columns:
+      - name: death_year
+        tests: [not_null]
+      - name: age_group
+        tests: [not_null]
+      - name: expected_deaths
+        description: "Trend-line expected deaths for that year."
+        tests: [not_null]
+      - name: excess_deaths
+        description: "Actual minus expected."
+      - name: r2_2015_2019
+        description: "How well the 2015-2019 trend fits (1 = perfect). Low values mean the baseline is less reliable."
+
+  - name: fct_state_65plus_excess
+    description: "Deaths age 65+ vs each state's 2015-2019 trend, with a rank of % above trend within each year (50 states + DC)."
+    columns:
+      - name: state_year_key
+        description: "Grain: one row per state + year."
+        tests: [unique, not_null]
+      - name: expected_deaths
+        tests: [not_null]
+      - name: rank_within_year
+        tests: [not_null]
