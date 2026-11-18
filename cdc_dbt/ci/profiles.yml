@@ -1,0 +1,14 @@
+# dbt profile used only by GitHub Actions (CI).
+# The service-account key is never stored in the repo: the workflow writes it
+# from the GCP_SA_KEY GitHub secret to a temp file and passes the path in DBT_KEYFILE.
+cdc_dbt:
+  target: ci
+  outputs:
+    ci:
+      type: bigquery
+      method: service-account
+      keyfile: "{{ env_var('DBT_KEYFILE') }}"
+      project: confident-inn-262715
+      dataset: dbt_cdc
+      threads: 4
+      job_execution_timeout_seconds: 300

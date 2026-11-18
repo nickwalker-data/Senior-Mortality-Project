@@ -1,5 +1,7 @@
 # Senior Mortality Shift: CDC Excess Deaths Analysis
 
+[![dbt daily build](https://github.com/nickwalker-data/Senior-Mortality-Project/actions/workflows/dbt-daily.yml/badge.svg)](https://github.com/nickwalker-data/Senior-Mortality-Project/actions/workflows/dbt-daily.yml)
+
 Did COVID-19 change *who* was dying in the US? This project pulls CDC weekly
 mortality data for 2015–2022, builds a pre-COVID trend baseline for each age
 group, and measures excess deaths. The finding: in 2021, excess mortality
@@ -43,6 +45,10 @@ raw (BigQuery dataset CDC)
 | `assert_states_reconcile_to_national_65plus` | The 51 jurisdictions' 65+ deaths add up to the national 65+ total within 0.05% (they agree within about 0.01%; the gap is CDC rounding of weighted estimates per state and week) |
 | `assert_raw_row_counts` | The raw tables are complete: 48 national rows and 408 state rows |
 
+### Scheduled runs (GitHub Actions)
+
+`.github/workflows/dbt-daily.yml` runs `dbt build` every day at 6 AM Eastern, on every push that changes the dbt project, and on demand from the Actions tab. If any of the 21 tests fails, the run fails and GitHub flags it. The BigQuery service-account key is stored as the `GCP_SA_KEY` repository secret and written to a temp file only for the run; `cdc_dbt/ci/profiles.yml` reads its path from an environment variable, so no credentials are committed.
+
 **Outputs:** `us_deaths_by_age_year.csv`, `state_deaths_65plus.csv`,
 `excess_deaths_trend_baseline.csv`, `excess_deaths_by_age.png`
 
@@ -73,5 +79,5 @@ CDC, *Weekly Counts of Deaths by Jurisdiction and Age* (dataset `y5bj-9g5w`),
 - [x] Trend baseline, excess deaths and chart
 - [x] dbt models and data tests on BigQuery
 - [ ] Tableau / Power BI dashboard on the dbt marts
-- [ ] Scheduled runs with GitHub Actions
+- [ ] Scheduled runs with GitHub Actions (daily `dbt build` with all tests; tick after first green run)
 - [ ] Natural-language question → SQL tool over the BigQuery tables

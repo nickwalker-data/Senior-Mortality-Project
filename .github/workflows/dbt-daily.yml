@@ -1,0 +1,57 @@
+name: dbt daily build
+
+on:
+  schedule:
+    - cron: "0 11 * * *"   # every day at 11:00 UTC (6 AM Eastern)
+  workflow_dispatch:        # "Run workflow" button in the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - "cdc_dbt/**"
+      - ".github/workflows/dbt-daily.yml"
+
+jobs:
+  dbt-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: cdc_dbt
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt for BigQuery
+        run: pip install "dbt-bigquery>=1.8,<2"
+
+      - name: Write BigQuery key from secret
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          printf '%s' "$GCP_SA_KEY" > "$RUNNER_TEMP/gcp-key.json"
+          echo "DBT_KEYFILE=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
+
+      - name: Check connection
+        run: dbt debug --profiles-dir ci
+
+      - name: Build models and run all data tests
+        run: dbt build --profiles-dir ci
+
+      - name: Save dbt results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-results
+          path: |
+            cdc_dbt/target/run_results.json
+            cdc_dbt/logs/dbt.log
+          retention-days: 14
+
+      - name: Remove key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gcp-key.json"
