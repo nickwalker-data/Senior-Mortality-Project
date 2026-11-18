@@ -79,5 +79,5 @@ CDC, *Weekly Counts of Deaths by Jurisdiction and Age* (dataset `y5bj-9g5w`),
 - [x] Trend baseline, excess deaths and chart
 - [x] dbt models and data tests on BigQuery
 - [ ] Tableau / Power BI dashboard on the dbt marts
-- [ ] Scheduled runs with GitHub Actions (daily `dbt build` with all tests; tick after first green run)
+- [x] Scheduled runs with GitHub Actions (daily `dbt build` with all 21 tests; first green run Nov 17, 2026)
 - [ ] Natural-language question → SQL tool over the BigQuery tables
