@@ -47,6 +47,22 @@ states = soql({
     "$limit": 50000,
 })
 
+# --- Step 2c: weeks per year. CDC years run 52 or 53 weeks (2020 has 53), so the trend
+# baseline needs each year's week count. Count distinct week-ending dates per year.
+week_dates = soql({
+    "$select": "year, week_ending_date",
+    "$where": BASE_WHERE,
+    "$group": "year, week_ending_date",
+    "$limit": 5000,
+})
+weeks = (
+    week_dates.assign(year=week_dates["year"].astype(int))
+    .groupby("year")["week_ending_date"].nunique()
+    .rename("weeks_in_year").reset_index()
+    .rename(columns={"year": "death_year"})
+)
+assert weeks["weeks_in_year"].between(52, 53).all(), f"Unexpected week counts:\n{weeks}"
+
 # --- Step 3: clean with pandas (API returns text -> convert to numbers) ---
 for df in (national, states):
     df["year"] = df["year"].astype(int)
@@ -68,6 +84,11 @@ national.to_csv("us_deaths_by_age_year.csv", index=False)
 states.to_csv("state_deaths_65plus.csv", index=False)
 print(f"Saved us_deaths_by_age_year.csv ({len(national)} rows)")
 print(f"Saved state_deaths_65plus.csv ({len(states)} rows, {states['State'].nunique()} jurisdictions)")
+
+# Week counts go to a dbt seed (used by the fct_ marts) and are read by cdc_trend_analysis.py.
+weeks.to_csv("cdc_dbt/seeds/cdc_weeks_per_year.csv", index=False)
+print("Saved cdc_dbt/seeds/cdc_weeks_per_year.csv:",
+      ", ".join(f"{r.death_year}={r.weeks_in_year}" for r in weeks.itertuples()))
 
 # --- Step 4: validation - one number we already know ---
 check = national.query("Year == 2015 and AgeGroup == '25-44'")["Deaths"].iloc[0]

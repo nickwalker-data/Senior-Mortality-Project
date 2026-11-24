@@ -2,6 +2,9 @@
 Senior Mortality Shift - Phase 1b: trend baseline, excess deaths, and a chart.
 numpy (arrays + math), statsmodels (OLS trend), matplotlib (chart).
 A trend baseline beats a flat average: deaths were already rising before COVID.
+CDC years run 52 or 53 weeks (2020 has 53), so the trend is fit on deaths scaled to a
+52-week basis and expected deaths are scaled back to each year's actual week count.
+Same method as the dbt fct_ marts.
 """
 
 import numpy as np
@@ -10,6 +13,11 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
 df = pd.read_csv("us_deaths_by_age_year.csv")          # Year, AgeGroup, Deaths
+weeks = (pd.read_csv("cdc_dbt/seeds/cdc_weeks_per_year.csv")   # written by cdc_mortality_pull.py
+         .rename(columns={"death_year": "Year", "weeks_in_year": "Weeks"}))
+df = df.merge(weeks, on="Year", how="left", validate="many_to_one")
+assert df["Weeks"].notna().all(), "Missing week count for some year"
+df["Deaths52"] = df["Deaths"] * 52 / df["Weeks"]          # deaths on a 52-week basis
 AGE_ORDER = [a for a in ["Under 25", "25-44", "45-64", "65-74", "75-84", "85 and older", "85+"]
              if a in set(df["AgeGroup"])]                  # keep only labels present in the file
 
@@ -18,16 +26,16 @@ for age in AGE_ORDER:
     g = df[df["AgeGroup"] == age].sort_values("Year")
     pre = g[g["Year"] <= 2019]
 
-    # --- statsmodels: Deaths = intercept + slope * Year, fit on 2015-2019 only
+    # --- statsmodels: Deaths52 = intercept + slope * Year, fit on 2015-2019 only
     X = sm.add_constant(pre["Year"].to_numpy())         # numpy array + intercept column
-    model = sm.OLS(pre["Deaths"].to_numpy(), X).fit()
+    model = sm.OLS(pre["Deaths52"].to_numpy(), X).fit()
 
-    # --- project the trend onto every year (numpy array in, numpy array out)
+    # --- project the trend onto every year, then scale to that year's week count
     years = g["Year"].to_numpy()
-    expected = model.predict(sm.add_constant(years))
+    expected = model.predict(sm.add_constant(years)) * g["Weeks"].to_numpy() / 52
 
-    for yr, actual, exp in zip(years, g["Deaths"].to_numpy(), expected):
-        rows.append({"Year": yr, "AgeGroup": age, "Deaths": actual,
+    for yr, wk, actual, exp in zip(years, g["Weeks"].to_numpy(), g["Deaths"].to_numpy(), expected):
+        rows.append({"Year": yr, "AgeGroup": age, "Weeks": wk, "Deaths": actual,
                      "Expected": round(exp), "Slope_per_year": round(model.params[1]),
                      "R2_2015_2019": round(model.rsquared, 3)})
 
