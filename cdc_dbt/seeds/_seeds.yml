@@ -1,0 +1,14 @@
+version: 2
+
+seeds:
+  - name: cdc_weeks_per_year
+    description: "Number of weeks in each CDC year (52 or 53; 2020 has 53), counted as distinct week-ending dates in dataset y5bj-9g5w. Written by cdc_mortality_pull.py; do not edit by hand."
+    columns:
+      - name: death_year
+        tests: [unique, not_null]
+      - name: weeks_in_year
+        tests:
+          - not_null
+          - accepted_values:
+              values: [52, 53]
+              quote: false
