@@ -32,3 +32,45 @@ models:
         tests: [not_null]
       - name: rank_within_year
         tests: [not_null]
+
+  - name: mart_senior_dashboard
+    description: "Source for the Tableau Public dashboard (exported to CSV). Long format: one row per year x breakdown x category. Tab 1 = 'Total 65+', tab 2 = 'Age group', tab 3 = 'State'."
+    columns:
+      - name: dashboard_key
+        description: "Grain: breakdown | category (state_code for states) | year."
+        tests: [unique, not_null]
+      - name: death_year
+        tests: [not_null]
+      - name: breakdown
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Total 65+', 'Age group', 'State']
+      - name: category
+        description: "'65+', an age group ('65-74', '75-84', '85+'), or a full state name."
+        tests: [not_null]
+      - name: state_code
+        description: "Two-letter code, set on State rows only (use as Tableau's geographic role)."
+        tests:
+          - not_null:
+              config:
+                where: "breakdown = 'State'"
+      - name: actual_deaths
+        tests: [not_null]
+      - name: expected_deaths
+        description: "2015-2019 linear trend projected to that year, scaled to its week count."
+        tests: [not_null]
+      - name: weeks_in_year
+        description: "52 or 53 (2020). Use for the dashboard footnote on 2020."
+        tests: [not_null]
+      - name: excess_deaths
+        tests: [not_null]
+      - name: pct_above_expected
+        description: "Recomputed from totals for the 65+ row; never average this column in Tableau."
+        tests: [not_null]
+      - name: rank_within_year
+        description: "State rows only: 1 = highest % above trend that year."
+        tests:
+          - not_null:
+              config:
+                where: "breakdown = 'State'"
